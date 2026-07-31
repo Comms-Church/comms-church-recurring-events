@@ -70,9 +70,27 @@ and is never what anyone meant.
 - Generated dates carry the parent's categories, tags, venue, organiser, cost, and
   featured image, so filtered calendars and single-event pages behave.
 
+## Migrating off Events Calendar Pro
+
+**Events → Migrate from Pro** (the menu item only appears if there is anything to migrate).
+
+The screen is a dry run. It lists every event with a Pro recurrence rule, what that rule
+says, and — expandable per event — the exact dates that would be created. Nothing is
+written until you click.
+
+- **Refuses rather than approximates.** Yearly repeats, monthly-by-nth-weekday
+  ("3rd Tuesday"), and stacked multi-rule events are marked *needs attention* and left
+  untouched. A quietly wrong calendar is worse than one that still needs Pro.
+- **Reversible.** The original Pro rule is kept on the event, and migrated events stay
+  listed with a **Roll back** button that removes the generated dates and restores it.
+- **Past dates are never created.**
+- Migrating detaches the Pro rule so both systems aren't managing the same event.
+
+Recommended order: back up the database, migrate one event, look at the calendar, then
+do the rest.
+
 ## Remaining
 
-- Migration path from existing ECP recurrence rules → generated dates
 - Playwright suite (as in the other comms.church plugins)
 - Block-editor parity (TEC uses the classic editor for events by default)
 - GitHub repo, release workflow, auto-updater

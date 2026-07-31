@@ -50,6 +50,13 @@ add_action( 'plugins_loaded', function () {
     if ( is_admin() ) {
         require_once CCREC_DIR . 'includes/class-ccrec-metabox.php';
         new CCREC_Metabox();
+
+        /* The migration screen only earns its menu slot when there is something to
+           migrate — a church that never used Pro shouldn't see it at all. */
+        require_once CCREC_DIR . 'includes/class-ccrec-migrate-screen.php';
+        if ( CCREC_ECP_Migrator::find_candidates() ) {
+            new CCREC_Migrate_Screen();
+        }
     }
     new CCREC_Generator();
 }, 20 );

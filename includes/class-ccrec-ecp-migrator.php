@@ -50,15 +50,21 @@ class CCREC_ECP_Migrator {
      */
     public static function find_candidates() {
         global $wpdb;
+
+        /* Two meta keys, deliberately. Migrating with "detach" removes the ECP rule, so
+           an already-migrated event would vanish from this list — taking its Roll back
+           button with it. Including the backup key keeps migrated events visible and
+           reversible, which is the whole point of keeping a backup. */
         $ids = $wpdb->get_col( $wpdb->prepare(
             "SELECT DISTINCT pm.post_id
                FROM {$wpdb->postmeta} pm
                INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-              WHERE pm.meta_key = %s
+              WHERE pm.meta_key IN ( %s, %s )
                 AND p.post_type = 'tribe_events'
                 AND p.post_status != 'trash'
               ORDER BY pm.post_id",
-            self::ECP_META
+            self::ECP_META,
+            self::BACKUP_META
         ) );
         return array_map( 'intval', (array) $ids );
     }
@@ -72,7 +78,13 @@ class CCREC_ECP_Migrator {
         $rows = array();
 
         foreach ( self::find_candidates() as $id ) {
-            $raw  = get_post_meta( $id, self::ECP_META, true );
+            $backup = get_post_meta( $id, self::BACKUP_META, true );
+            $raw    = get_post_meta( $id, self::ECP_META, true );
+
+            /* A migrated-and-detached event has no live ECP rule left. Describe it from
+               the backup so the row still shows what it came from. */
+            if ( ! $raw && $backup ) $raw = $backup;
+
             $conv = self::convert( $raw );
 
             $row = array(
@@ -91,8 +103,15 @@ class CCREC_ECP_Migrator {
                 $row['dates']  = CCREC_Expander::expand( $conv['rule'], $row['start'], $tz );
             }
 
-            if ( get_post_meta( $id, self::BACKUP_META, true ) ) {
+            if ( $backup ) {
                 $row['status'] = 'already migrated';
+                $row['note']   = sprintf(
+                    /* translators: %d: number of generated dates */
+                    _n( '%d date generated. Roll back to restore the Pro rule.', '%d dates generated. Roll back to restore the Pro rule.',
+                        CCREC_Generator::count_children( $id ), 'comms-church-recurring-events' ),
+                    CCREC_Generator::count_children( $id )
+                );
+                $row['dates'] = array();
             }
 
             $rows[] = $row;
