@@ -6,8 +6,9 @@ licence required.
 
 ## Status
 
-**0.1.0 — early.** The recurrence engine, generation, and edit-screen controls work and are
-tested end to end. Not yet released; see [Remaining](#remaining).
+**0.1.0 — released.** Recurrence engine, generation, edit-screen controls, and the
+migration path off Pro all work and are tested end to end (8/8 Playwright smoke against
+free TEC with no Pro installed).
 
 ## Why this exists
 
@@ -91,10 +92,8 @@ do the rest.
 
 ## Remaining
 
-- Playwright suite (as in the other comms.church plugins)
 - Block-editor parity (TEC uses the classic editor for events by default)
-- GitHub repo, release workflow, auto-updater
-- comms.church landing page + resources card
+- Screenshots for the comms.church landing page
 
 ## Architecture
 
@@ -105,7 +104,20 @@ includes/
   class-ccrec-expander.php   pure date maths — rule + seed -> list of datetimes (no WordPress)
   class-ccrec-generator.php  materialises dates as real TEC events via the ORM; sync/cleanup
   class-ccrec-metabox.php    edit-screen controls, events-list "Repeats" column
+  class-ccrec-ecp-migrator.php  reads ECP rules, converts, migrates, rolls back
+  class-ccrec-migrate-screen.php  Events -> Migrate from Pro (dry run by default)
+  class-ccrec-updater.php    GitHub Releases -> native WP update UI
 ```
+
+### A TEC 6 gotcha this cost us
+
+With custom tables active, `get_posts()` on `tribe_events` returns *provisional*
+occurrence IDs (`10000001`+) rather than post IDs — even for single-occurrence events.
+Operating on a provisional ID is fine, because TEC's compatibility layer resolves reads
+and writes to the real post. The failure is **storing one as data**: an early version
+recorded provisional IDs as parent references, so later lookups by real ID matched
+nothing and left orphaned events behind. Anywhere a real post ID is needed, this queries
+postmeta directly via `$wpdb`.
 
 `class-ccrec-expander.php` has no WordPress dependencies on purpose — the date maths is the
 part most likely to be wrong, so it can be reasoned about and tested on its own.
