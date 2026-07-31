@@ -46,6 +46,7 @@ add_action( 'plugins_loaded', function () {
     }
 
     require_once CCREC_DIR . 'includes/class-ccrec-generator.php';
+    require_once CCREC_DIR . 'includes/class-ccrec-ecp-migrator.php';
     if ( is_admin() ) {
         require_once CCREC_DIR . 'includes/class-ccrec-metabox.php';
         new CCREC_Metabox();

@@ -183,17 +183,28 @@ class CCREC_Generator {
 
     // ---- queries ------------------------------------------------------------
 
-    /** @return int[] child post IDs, any status */
+    /**
+     * @return int[] child post IDs, any status
+     *
+     * Queried straight from postmeta rather than through get_posts(). With TEC 6's
+     * custom tables active, an event query returns *provisional* occurrence IDs
+     * (10000001, 10000002, …) rather than real post IDs — harmless when every event has
+     * one occurrence, but silently wrong for recurring events, which is precisely the
+     * case this plugin exists for. Writing meta against a provisional ID lands nowhere.
+     */
     public static function children_of( $parent_id ) {
-        return get_posts( array(
-            'post_type'      => 'tribe_events',
-            'post_status'    => 'any',
-            'posts_per_page' => -1,
-            'fields'         => 'ids',
-            'meta_key'       => self::PARENT_META,
-            'meta_value'     => (int) $parent_id,
-            'no_found_rows'  => true,
+        global $wpdb;
+        $ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT pm.post_id
+               FROM {$wpdb->postmeta} pm
+               INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+              WHERE pm.meta_key = %s
+                AND pm.meta_value = %d
+                AND p.post_type = 'tribe_events'",
+            self::PARENT_META,
+            (int) $parent_id
         ) );
+        return array_map( 'intval', (array) $ids );
     }
 
     public static function count_children( $parent_id ) {
