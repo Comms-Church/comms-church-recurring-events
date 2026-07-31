@@ -1,0 +1,14 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "steps": [
+    {
+      "step": "installPlugin",
+      "pluginData": { "resource": "wordpress.org/plugins", "slug": "the-events-calendar" },
+      "options": { "activate": true }
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require_once '/wordpress/wp-load.php'; $o = (array) get_option('tribe_events_calendar_options', []); $o['tec_onboarding_wizard_visited_guided_setup'] = true; update_option('tribe_events_calendar_options', $o); if ( ! function_exists('tribe_events') ) { return; } $ev = tribe_events()->set_args([ 'title'=>'Weekly Service', 'status'=>'publish', 'start_date'=>date('Y-m-d 19:00:00', strtotime('+7 days')), 'end_date'=>date('Y-m-d 20:30:00', strtotime('+7 days')), 'timezone'=>'America/New_York' ])->create(); flush_rewrite_rules();"
+    }
+  ]
+}

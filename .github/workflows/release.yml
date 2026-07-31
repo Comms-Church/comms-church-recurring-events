@@ -1,0 +1,62 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract tag version
+        id: tag
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify plugin header version matches tag
+        run: |
+          HEADER_VERSION=$(grep -m1 "Version:" comms-church-recurring-events.php | sed -E 's/.*Version:\s*//')
+          CONST_VERSION=$(grep -m1 "define( 'CCREC_VERSION'" comms-church-recurring-events.php | sed -E "s/.*'([0-9.]+)'.*/\1/")
+          TAG_VERSION="${{ steps.tag.outputs.version }}"
+
+          echo "Tag version:    $TAG_VERSION"
+          echo "Header version: $HEADER_VERSION"
+          echo "Const version:  $CONST_VERSION"
+
+          if [ "$HEADER_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Plugin header Version ($HEADER_VERSION) does not match tag ($TAG_VERSION)."
+            exit 1
+          fi
+
+          if [ "$CONST_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::CCREC_VERSION constant ($CONST_VERSION) does not match tag ($TAG_VERSION)."
+            exit 1
+          fi
+
+      - name: Build plugin zip
+        run: |
+          mkdir -p build/comms-church-recurring-events
+          rsync -a --exclude='.git' --exclude='.github' --exclude='.claude' --exclude='build' \
+            --exclude='.gitignore' --exclude='.gitattributes' --exclude='deploy.sh' --exclude='.DS_Store' \
+            --exclude='node_modules' --exclude='tests' --exclude='test-results' \
+            --exclude='playwright-report' --exclude='screenshots' --exclude='package.json' \
+            --exclude='package-lock.json' --exclude='playwright.config.js' \
+            ./ build/comms-church-recurring-events/
+          cd build
+          zip -r comms-church-recurring-events.zip comms-church-recurring-events
+          cd ..
+          mv build/comms-church-recurring-events.zip comms-church-recurring-events.zip
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: comms-church-recurring-events.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

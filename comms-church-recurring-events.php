@@ -53,6 +53,9 @@ add_action( 'plugins_loaded', function () {
 
         /* The migration screen only earns its menu slot when there is something to
            migrate — a church that never used Pro shouldn't see it at all. */
+        require_once CCREC_DIR . 'includes/class-ccrec-updater.php';
+        new CCREC_Updater( CCREC_FILE, CCREC_VERSION );
+
         require_once CCREC_DIR . 'includes/class-ccrec-migrate-screen.php';
         if ( CCREC_ECP_Migrator::find_candidates() ) {
             new CCREC_Migrate_Screen();
