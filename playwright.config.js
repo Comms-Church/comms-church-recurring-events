@@ -2,7 +2,7 @@
 // with the plugin auto-mounted and seeded via tests/blueprint.json.
 const { defineConfig } = require('@playwright/test');
 
-const PORT = 9401;
+const PORT = 9404;
 
 module.exports = defineConfig({
   testDir: './tests',

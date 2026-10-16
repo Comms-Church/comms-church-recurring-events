@@ -3,7 +3,7 @@
   "private": true,
   "description": "Recurring events for the free version of The Events Calendar",
   "scripts": {
-    "wp": "wp-playground-cli server --auto-mount --login --port 9401 --blueprint tests/blueprint.json",
+    "wp": "wp-playground-cli server --auto-mount --login --port 9404 --blueprint tests/blueprint.json",
     "test": "playwright test --project=smoke",
     "screenshots": "playwright test --project=screenshots"
   },
