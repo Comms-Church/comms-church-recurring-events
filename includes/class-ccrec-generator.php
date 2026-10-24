@@ -149,7 +149,7 @@ class CCREC_Generator {
         if ( ! $parent ) return false;
 
         try {
-            $end = ( new DateTimeImmutable( $start, new DateTimeZone( $tz ) ) )
+            $end = ( new DateTimeImmutable( $start, CCREC_Expander::timezone( $tz ) ) )
                 ->modify( '+' . max( 300, (int) $duration ) . ' seconds' )
                 ->format( 'Y-m-d H:i:s' );
         } catch ( Exception $e ) {

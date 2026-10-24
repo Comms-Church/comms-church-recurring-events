@@ -13,14 +13,13 @@ async function expectClean(page) {
 
 // An event of the test's own, repeating weekly 3 times, so tests that save or delete
 // never touch the seeded event the setup project waits for.
-async function createRepeatingEvent(page, title) {
+async function createRepeatingEvent(page, title, timezone = 'America/New_York') {
   await page.goto('/wp-admin/');
   const nonce = await (await page.request.get('/wp-admin/admin-ajax.php?action=rest-nonce')).text();
   const day = new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10);
   const res = await page.request.post('/wp-json/tribe/events/v1/events', {
     headers: { 'X-WP-Nonce': nonce },
-    // A named zone, like the seeded event: the site default "UTC+0" isn't one PHP parses.
-    data: { title, status: 'publish', start_date: `${day} 18:00:00`, end_date: `${day} 19:00:00`, timezone: 'America/New_York' },
+    data: { title, status: 'publish', start_date: `${day} 18:00:00`, end_date: `${day} 19:00:00`, timezone },
   });
   expect(res.ok()).toBeTruthy();
   const { id } = await res.json();
@@ -147,6 +146,17 @@ test.describe('Admin', () => {
     await deleteForGood(page, ev, { alreadyTrashed: true });
     await page.goto('/wp-admin/edit.php?post_type=tribe_events&post_status=trash');
     await expect(page.locator('#the-list tr', { hasText: ev.title })).toHaveCount(0);
+  });
+
+  test('an event in a UTC-offset timezone still gets its dates', async ({ page }) => {
+    // TEC spells a manual-offset site timezone "UTC+0" (WordPress's default), which
+    // PHP's DateTimeZone rejects. createRepeatingEvent() asserts "3 dates added".
+    const ev = await createRepeatingEvent(page, `Smoke UTC ${Date.now()}`, 'UTC+0');
+    await page.goto(ev.editUrl);
+    const next = page.locator('#ccrec_rule .ccrec-next li');
+    await expect(next).toHaveCount(3);
+    await expect(next.first()).toContainText('6:00pm');   // wall-clock time kept
+    await deleteForGood(page, ev);
   });
 
   test('plugins screen renders with the plugin active', async ({ page }) => {
