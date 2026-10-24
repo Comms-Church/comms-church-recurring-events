@@ -46,6 +46,27 @@ class CCREC_Metabox {
 
         $rule     = CCREC_Rule::for_post( $post->ID );
         $children = CCREC_Generator::count_children( $post->ID );
+        $units    = array( 'daily' => __( 'days', 'comms-church-recurring-events' ), 'weekly' => __( 'weeks', 'comms-church-recurring-events' ), 'monthly' => __( 'months', 'comms-church-recurring-events' ) );
+
+        // Same strings CCREC_Rule::describe() uses, so the live summary reads
+        // exactly like the Repeats column will after saving.
+        $day_names = array();
+        for ( $d = 0; $d <= 6; $d++ ) $day_names[] = date_i18n( 'D', strtotime( 'Sunday +' . $d . ' days' ) );
+        $summary_i18n = array(
+            'daily'          => __( 'Daily', 'comms-church-recurring-events' ),
+            'everyDays'      => __( 'Every %d days', 'comms-church-recurring-events' ),
+            'weekly'         => __( 'Weekly', 'comms-church-recurring-events' ),
+            'weeklyOn'       => __( 'Weekly on %s', 'comms-church-recurring-events' ),
+            'everyWeeksOn'   => __( 'Every %1$d weeks on %2$s', 'comms-church-recurring-events' ),
+            'monthlyDate'    => __( 'Monthly, same date', 'comms-church-recurring-events' ),
+            'monthlyWeekday' => __( 'Monthly, same weekday', 'comms-church-recurring-events' ),
+            'everyMonths'    => __( 'Every %d months', 'comms-church-recurring-events' ),
+            'until'          => __( 'until %s', 'comms-church-recurring-events' ),
+            'time'           => _n( '(%d time)', '(%d times)', 1, 'comms-church-recurring-events' ),
+            'times'          => _n( '(%d time)', '(%d times)', 2, 'comms-church-recurring-events' ),
+            'days'           => $day_names,
+            'units'          => $units,
+        );
         wp_nonce_field( 'ccrec_save_rule', self::NONCE );
         ?>
         <p>
@@ -57,6 +78,8 @@ class CCREC_Metabox {
                 <option value="monthly" <?php selected( $rule->freq, 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'comms-church-recurring-events' ); ?></option>
             </select>
         </p>
+        <p class="ccrec-summary description" aria-live="polite"
+           data-i18n="<?php echo esc_attr( wp_json_encode( $summary_i18n ) ); ?>"><?php echo esc_html( $rule->describe() ); ?></p>
 
         <div class="ccrec-when" style="<?php echo 'none' === $rule->freq ? 'display:none' : ''; ?>">
 
@@ -64,7 +87,7 @@ class CCREC_Metabox {
                 <label for="ccrec_interval"><?php esc_html_e( 'Every', 'comms-church-recurring-events' ); ?></label>
                 <input type="number" name="ccrec_interval" id="ccrec_interval" min="1" max="52" style="width:70px"
                        value="<?php echo esc_attr( $rule->interval ); ?>">
-                <span class="ccrec-unit"></span>
+                <span class="ccrec-unit"><?php echo esc_html( $units[ $rule->freq ] ?? '' ); ?></span>
             </p>
 
             <div class="ccrec-weekly" style="<?php echo 'weekly' === $rule->freq ? '' : 'display:none'; ?>">
@@ -116,6 +139,9 @@ class CCREC_Metabox {
             </p>
 
             <?php if ( $children ) : ?>
+                <p class="ccrec-change-warning notice notice-warning inline" hidden>
+                    <?php esc_html_e( 'Future dates that no longer fit the new pattern will be removed when you update, including any you edited individually.', 'comms-church-recurring-events' ); ?>
+                </p>
                 <p class="description" style="border-top:1px solid #dcdcde;padding-top:8px">
                     <?php printf(
                         esc_html( _n( '%d date generated.', '%d dates generated.', $children, 'comms-church-recurring-events' ) ),
@@ -138,7 +164,43 @@ class CCREC_Metabox {
                 unit = box.querySelector( '.ccrec-unit' ),
                 cnt  = box.querySelector( '.ccrec-ends-count' ),
                 unt  = box.querySelector( '.ccrec-ends-until' );
-            var units = { daily: 'days', weekly: 'weeks', monthly: 'months', none: '' };
+            var summaryEl = box.querySelector( '.ccrec-summary' ),
+                warn      = box.querySelector( '.ccrec-change-warning' ),
+                t         = JSON.parse( summaryEl.getAttribute( 'data-i18n' ) || '{}' ),
+                units     = t.units || {};
+
+            function fmt( s ) {
+                var args = [].slice.call( arguments, 1 ), i = 0;
+                return s.replace( /%(\d\$)?[ds]/g, function ( m, pos ) {
+                    return pos ? args[ parseInt( pos, 10 ) - 1 ] : args[ i++ ];
+                } );
+            }
+
+            // Mirrors CCREC_Rule::describe() so editors see the result before saving.
+            function summary() {
+                var f = freq.value,
+                    n = parseInt( box.querySelector( '#ccrec_interval' ).value, 10 ) || 1,
+                    s = '';
+                if ( f === 'daily' ) {
+                    s = n > 1 ? fmt( t.everyDays, n ) : t.daily;
+                } else if ( f === 'weekly' ) {
+                    var names = [].map.call( box.querySelectorAll( '[name="ccrec_weekdays[]"]:checked' ), function ( c ) { return t.days[ c.value ]; } ).join( ', ' );
+                    s = n > 1 && names ? fmt( t.everyWeeksOn, n, names ) : ( names ? fmt( t.weeklyOn, names ) : t.weekly );
+                } else if ( f === 'monthly' ) {
+                    var weekday = box.querySelector( '[name="ccrec_monthly_mode"]:checked' );
+                    s = n > 1 ? fmt( t.everyMonths, n ) : ( weekday && weekday.value === 'weekday' ? t.monthlyWeekday : t.monthlyDate );
+                } else {
+                    return '';
+                }
+                var until = box.querySelector( '[name="ccrec_until"]' ).value,
+                    count = parseInt( box.querySelector( '[name="ccrec_count"]' ).value, 10 ) || 0;
+                if ( ends.value === 'until' && until ) {
+                    s += ' ' + fmt( t.until, new Date( until + 'T00:00' ).toLocaleDateString() );
+                } else if ( ends.value === 'count' && count ) {
+                    s += ' ' + fmt( count === 1 ? t.time : t.times, count );
+                }
+                return s;
+            }
 
             function sync() {
                 var f = freq.value;
@@ -148,9 +210,13 @@ class CCREC_Metabox {
                 if ( unit ) unit.textContent = units[ f ] || '';
                 cnt.style.display = ends.value === 'count' ? '' : 'none';
                 unt.style.display = ends.value === 'until' ? '' : 'none';
+                if ( summaryEl ) summaryEl.textContent = summary();
             }
             freq.addEventListener( 'change', sync );
             ends.addEventListener( 'change', sync );
+            box.addEventListener( 'input', sync );
+            // Saving a changed rule removes future dates that no longer fit — warn first.
+            box.addEventListener( 'change', function () { if ( warn ) warn.hidden = false; } );
             sync();
         } )();
         </script>
@@ -190,7 +256,7 @@ class CCREC_Metabox {
         $parent_id = (int) get_post_meta( $post_id, CCREC_Generator::PARENT_META, true );
         if ( $parent_id ) {
             printf(
-                '<span title="%s">↳ %s</span>',
+                '<span title="%s"><span aria-hidden="true">↳</span> %s</span>',
                 esc_attr__( 'Generated from a repeating event', 'comms-church-recurring-events' ),
                 esc_html__( 'generated date', 'comms-church-recurring-events' )
             );
@@ -198,7 +264,11 @@ class CCREC_Metabox {
         }
 
         $rule = CCREC_Rule::for_post( $post_id );
-        if ( ! $rule->is_active() ) { echo '—'; return; }
+        if ( ! $rule->is_active() ) {
+            echo '<span aria-hidden="true">—</span><span class="screen-reader-text">'
+                . esc_html__( 'Does not repeat', 'comms-church-recurring-events' ) . '</span>';
+            return;
+        }
 
         printf(
             '%s<br><small>%s</small>',

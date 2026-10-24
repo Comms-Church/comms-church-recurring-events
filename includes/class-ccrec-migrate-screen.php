@@ -219,7 +219,10 @@ class CCREC_Migrate_Screen {
     /** Single-action form; each row posts on its own so one click does one thing. */
     private function button( $action, $id, $label, $class ) {
         ?>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline"
+            <?php if ( 'rollback' === $action ) : ?>
+              onsubmit="return confirm('<?php echo esc_js( __( 'Roll back this event? The dates the migration generated will be deleted.', 'comms-church-recurring-events' ) ); ?>');"
+            <?php endif; ?>>
             <?php wp_nonce_field( 'ccrec_migrate' ); ?>
             <input type="hidden" name="action" value="ccrec_migrate">
             <input type="hidden" name="ccrec_action" value="<?php echo esc_attr( $action ); ?>">
