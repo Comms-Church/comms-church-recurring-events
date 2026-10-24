@@ -295,7 +295,7 @@ class CCREC_ECP_Migrator {
         $backup = get_post_meta( $post_id, self::BACKUP_META, true );
         if ( ! $backup ) return false;
 
-        foreach ( CCREC_Generator::children_of( $post_id ) as $child ) {
+        foreach ( CCREC_Generator::children_of( $post_id, true ) as $child ) {
             wp_delete_post( $child, true );
         }
         delete_post_meta( $post_id, CCREC_Rule::META_KEY );
