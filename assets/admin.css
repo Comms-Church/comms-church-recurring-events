@@ -1,0 +1,58 @@
+/* Comms.Church Recurring Events — admin styles (repeat metabox + migration screen).
+   Uses the admin color scheme where WordPress provides one. */
+
+#ccrec_rule { --ccrec-accent: var(--wp-admin-theme-color, #2271b1); }
+
+#ccrec_rule .ccrec-full  { width: 100%; }
+#ccrec_rule .ccrec-num   { width: 5em; }
+#ccrec_rule .ccrec-block { display: block; }
+#ccrec_rule .ccrec-generated { border-top: 1px solid #dcdcde; padding-top: 8px; }
+#ccrec_rule .ccrec-error { color: #d63638; font-weight: 600; margin-top: 4px; }
+#ccrec_rule [aria-invalid="true"] { border-color: #d63638; box-shadow: 0 0 0 1px #d63638; }
+
+/* Live summary + next dates */
+#ccrec_rule .ccrec-summary:empty { display: none; }
+#ccrec_rule .ccrec-summary { margin-top: -4px; color: #1d2327; font-weight: 600; font-style: normal; }
+#ccrec_rule .ccrec-next { margin: 0 0 12px; padding: 8px 10px; background: #f6f7f7; border-radius: 4px; }
+#ccrec_rule .ccrec-next-label { margin: 0 0 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #646970; }
+#ccrec_rule .ccrec-next ul { margin: 0; }
+#ccrec_rule .ccrec-next li { margin: 0 0 2px; font-size: 12px; }
+#ccrec_rule .ccrec-next .ccrec-more { color: #646970; }
+
+/* Weekday pills: real checkboxes underneath, a 32px target on top. */
+#ccrec_rule .ccrec-days { margin: 0 0 6px; padding: 0; border: 0; }
+#ccrec_rule .ccrec-days legend { margin-bottom: 6px; padding: 0; }
+#ccrec_rule .ccrec-day { position: relative; display: inline-block; margin: 0 4px 6px 0; }
+#ccrec_rule .ccrec-day input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+#ccrec_rule .ccrec-day span {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 40px; height: 32px; padding: 0 6px;
+  border: 1px solid #8c8f94; border-radius: 16px;
+  font-size: 12px; font-weight: 600; color: #1d2327; background: #fff;
+  transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+#ccrec_rule .ccrec-day input:checked + span { background: var(--ccrec-accent); border-color: var(--ccrec-accent); color: #fff; }
+#ccrec_rule .ccrec-day input:focus-visible + span { outline: 2px solid var(--ccrec-accent); outline-offset: 2px; }
+#ccrec_rule .ccrec-day input:active + span { transform: scale(.96); }
+@media (prefers-reduced-motion: reduce) { #ccrec_rule .ccrec-day span { transition: none; } }
+
+/* Migration screen */
+.ccrec-migrate .ccrec-measure { max-width: 760px; }
+.ccrec-migrate .ccrec-bullets { list-style: disc; margin-left: 20px; }
+.ccrec-migrate .ccrec-small { margin: 6px 0 0 16px; font-size: 12px; }
+.ccrec-migrate .ccrec-col-event  { width: 26%; }
+.ccrec-migrate .ccrec-col-rule   { width: 20%; }
+.ccrec-migrate .ccrec-col-status { width: 14%; }
+.ccrec-migrate .ccrec-col-action { width: 130px; }
+.ccrec-migrate .ccrec-code { font-size: 12px; }
+.ccrec-migrate .ccrec-dates { margin-top: 4px; }
+.ccrec-migrate .ccrec-dates summary { cursor: pointer; }
+.ccrec-migrate .ccrec-note { margin-top: 4px; }
+.ccrec-migrate .ccrec-section { margin-top: 28px; }
+.ccrec-migrate .ccrec-inline-form { display: inline; }
+
+/* Status reads as a label with WordPress notice colors, not color alone. */
+.ccrec-status { display: inline-block; padding: 1px 8px; border-left: 4px solid #8c8f94; background: #f6f7f7; font-weight: 600; }
+.ccrec-status--ready            { border-left-color: #00a32a; }
+.ccrec-status--unsupported      { border-left-color: #d63638; }
+.ccrec-status--already-migrated { border-left-color: #8c8f94; color: #50575e; }

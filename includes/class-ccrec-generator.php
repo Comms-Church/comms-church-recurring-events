@@ -29,6 +29,29 @@ class CCREC_Generator {
         add_action( 'save_post_tribe_events', array( $this, 'on_save' ), 20, 3 );
         add_action( 'before_delete_post', array( $this, 'on_delete' ) );
         add_action( 'wp_trash_post', array( $this, 'on_trash' ) );
+        add_action( 'admin_notices', array( $this, 'sync_notice' ) );
+    }
+
+    /** After a save that changed the generated dates, say what changed. */
+    public function sync_notice() {
+        $key    = 'ccrec_sync_' . get_current_user_id();
+        $result = get_transient( $key );
+        if ( ! $result ) return;
+        delete_transient( $key );
+
+        $parts = array();
+        if ( $result['created'] ) {
+            $parts[] = sprintf( _n( '%d date added', '%d dates added', $result['created'], 'comms-church-recurring-events' ), $result['created'] );
+        }
+        if ( $result['trashed'] ) {
+            $parts[] = sprintf( _n( '%d date moved to the Trash', '%d dates moved to the Trash', $result['trashed'], 'comms-church-recurring-events' ), $result['trashed'] );
+        }
+        echo '<div class="notice notice-info is-dismissible"><p>'
+            . esc_html__( 'Repeat pattern updated:', 'comms-church-recurring-events' ) . ' ' . esc_html( implode( ', ', $parts ) ) . '.'
+            . ( $result['trashed']
+                ? ' <a href="' . esc_url( admin_url( 'edit.php?post_status=trash&post_type=tribe_events' ) ) . '">' . esc_html__( 'View Trash', 'comms-church-recurring-events' ) . '</a>'
+                : '' )
+            . '</p></div>';
     }
 
     // ---- hooks --------------------------------------------------------------
@@ -36,20 +59,25 @@ class CCREC_Generator {
     public function on_save( $post_id, $post, $update ) {
         if ( self::$working ) return;
         if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) return;
-        if ( 'auto-draft' === $post->post_status ) return;
+        // Trashing a parent re-saves it after on_trash() has trashed its dates; syncing
+        // then would find none and generate a fresh set straight into the Trash.
+        if ( in_array( $post->post_status, array( 'auto-draft', 'trash' ), true ) ) return;
 
         // Children never spawn children.
         if ( get_post_meta( $post_id, self::PARENT_META, true ) ) return;
 
-        $rule = CCREC_Rule::for_post( $post_id );
-        self::sync( $post_id, $rule );
+        $rule   = CCREC_Rule::for_post( $post_id );
+        $result = self::sync( $post_id, $rule );
+        if ( $result['created'] || $result['trashed'] ) {
+            set_transient( 'ccrec_sync_' . get_current_user_id(), $result, MINUTE_IN_SECONDS );
+        }
     }
 
     /** Deleting a parent for good takes its generated dates with it. */
     public function on_delete( $post_id ) {
         if ( 'tribe_events' !== get_post_type( $post_id ) ) return;
         if ( get_post_meta( $post_id, self::PARENT_META, true ) ) return;
-        foreach ( self::children_of( $post_id ) as $child_id ) {
+        foreach ( self::children_of( $post_id, true ) as $child_id ) {   // trashed ones too
             wp_delete_post( $child_id, true );
         }
     }
@@ -72,10 +100,14 @@ class CCREC_Generator {
      * that changes "every Tuesday" to "every Wednesday" in March must not have January's
      * events silently rewritten or deleted underneath them.
      *
-     * @return array{created:int,deleted:int,kept:int}
+     * Future dates the rule no longer wants go to the Trash, not straight to permanent
+     * deletion — they may carry edits made to that one date, and a slip should be
+     * recoverable.
+     *
+     * @return array{created:int,trashed:int,kept:int}
      */
     public static function sync( $parent_id, CCREC_Rule $rule ) {
-        $result = array( 'created' => 0, 'deleted' => 0, 'kept' => 0 );
+        $result = array( 'created' => 0, 'trashed' => 0, 'kept' => 0 );
 
         $start = get_post_meta( $parent_id, '_EventStartDate', true );
         if ( ! $start ) return $result;
@@ -94,8 +126,8 @@ class CCREC_Generator {
         foreach ( $existing as $date => $child_id ) {
             if ( $date < $now ) { $result['kept']++; continue; }   // history is not ours to edit
             if ( in_array( $date, $wanted, true ) ) { $result['kept']++; continue; }
-            wp_delete_post( $child_id, true );
-            $result['deleted']++;
+            wp_trash_post( $child_id );
+            $result['trashed']++;
         }
 
         // Add the ones that are missing.
@@ -117,7 +149,7 @@ class CCREC_Generator {
         if ( ! $parent ) return false;
 
         try {
-            $end = ( new DateTimeImmutable( $start, new DateTimeZone( $tz ) ) )
+            $end = ( new DateTimeImmutable( $start, CCREC_Expander::timezone( $tz ) ) )
                 ->modify( '+' . max( 300, (int) $duration ) . ' seconds' )
                 ->format( 'Y-m-d H:i:s' );
         } catch ( Exception $e ) {
@@ -184,7 +216,9 @@ class CCREC_Generator {
     // ---- queries ------------------------------------------------------------
 
     /**
-     * @return int[] child post IDs, any status
+     * @param bool $include_trash Trashed dates are normally not "ours" any more: a
+     *                            rule that wants that date again creates a fresh one.
+     * @return int[] child post IDs
      *
      * Queried straight from postmeta rather than through get_posts(). With TEC 6's
      * custom tables active, an event query returns *provisional* occurrence IDs
@@ -192,7 +226,7 @@ class CCREC_Generator {
      * one occurrence, but silently wrong for recurring events, which is precisely the
      * case this plugin exists for. Writing meta against a provisional ID lands nowhere.
      */
-    public static function children_of( $parent_id ) {
+    public static function children_of( $parent_id, $include_trash = false ) {
         global $wpdb;
         $ids = $wpdb->get_col( $wpdb->prepare(
             "SELECT pm.post_id
@@ -200,7 +234,8 @@ class CCREC_Generator {
                INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
               WHERE pm.meta_key = %s
                 AND pm.meta_value = %d
-                AND p.post_type = 'tribe_events'",
+                AND p.post_type = 'tribe_events'"
+                . ( $include_trash ? '' : " AND p.post_status <> 'trash'" ),
             self::PARENT_META,
             (int) $parent_id
         ) );

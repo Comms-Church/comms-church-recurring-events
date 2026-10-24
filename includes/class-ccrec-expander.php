@@ -23,6 +23,25 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class CCREC_Expander {
 
     /**
+     * An event's timezone as an object.
+     *
+     * TEC stores a site set to a manual offset as "UTC+0", "UTC-5" or "UTC+5.5" — and
+     * "UTC+0" is WordPress's own default — but DateTimeZone rejects that spelling. Left
+     * alone, every event on such a site silently expanded to no dates at all. Rewrite
+     * it as the "+05:30" form PHP does accept; real zone names pass straight through.
+     *
+     * @throws Exception for a name that is neither a zone nor an offset
+     */
+    public static function timezone( $name ) {
+        $name = trim( (string) $name );
+        if ( preg_match( '/^UTC([+-])(\d{1,2})(?:\.(\d+))?$/i', $name, $m ) ) {
+            $minutes = isset( $m[3] ) ? (int) round( (float) ( '0.' . $m[3] ) * 60 ) : 0;
+            $name    = sprintf( '%s%02d:%02d', $m[1], (int) $m[2], $minutes );
+        }
+        return new DateTimeZone( '' === $name ? 'UTC' : $name );
+    }
+
+    /**
      * @param CCREC_Rule $rule
      * @param string     $seed_start 'Y-m-d H:i:s' — the first occurrence (the event itself)
      * @param string     $timezone   e.g. 'America/New_York'
@@ -32,7 +51,7 @@ class CCREC_Expander {
         if ( ! $rule->is_active() ) return array();
 
         try {
-            $tz   = new DateTimeZone( $timezone ?: 'UTC' );
+            $tz   = self::timezone( $timezone );
             $seed = new DateTimeImmutable( $seed_start, $tz );
         } catch ( Exception $e ) {
             return array();

@@ -87,7 +87,7 @@ class CCREC_Migrate_Screen {
         $migrated  = array_filter( $rows, function ( $r ) { return 'already migrated' === $r['status']; } );
         $pro_on    = class_exists( 'Tribe__Events__Pro__Main' ) || defined( 'EVENTS_CALENDAR_PRO_FILE' );
         ?>
-        <div class="wrap">
+        <div class="wrap ccrec-migrate">
             <h1><?php esc_html_e( 'Migrate from Events Calendar Pro', 'comms-church-recurring-events' ); ?></h1>
 
             <?php if ( ! empty( $_GET['ccrec_msg'] ) ) : ?>
@@ -96,7 +96,7 @@ class CCREC_Migrate_Screen {
                 </p></div>
             <?php endif; ?>
 
-            <p class="description" style="max-width:760px">
+            <p class="description ccrec-measure">
                 <?php esc_html_e( 'This converts repeating events managed by Events Calendar Pro into individual events managed by this plugin. Each date becomes an ordinary event, so the calendar keeps working if Pro is ever removed.', 'comms-church-recurring-events' ); ?>
             </p>
 
@@ -107,9 +107,9 @@ class CCREC_Migrate_Screen {
                 <?php return; ?>
             <?php endif; ?>
 
-            <div class="notice notice-warning inline" style="max-width:760px">
+            <div class="notice notice-warning inline ccrec-measure">
                 <p><strong><?php esc_html_e( 'Before you start', 'comms-church-recurring-events' ); ?></strong></p>
-                <ul style="list-style:disc;margin-left:20px">
+                <ul class="ccrec-bullets">
                     <li><?php esc_html_e( 'Take a database backup. This creates and deletes events.', 'comms-church-recurring-events' ); ?></li>
                     <li><?php esc_html_e( 'Check the dates below first, then migrate one event and look at your calendar before doing the rest.', 'comms-church-recurring-events' ); ?></li>
                     <li><?php esc_html_e( 'Past dates are never created. Only upcoming ones are generated.', 'comms-church-recurring-events' ); ?></li>
@@ -130,11 +130,11 @@ class CCREC_Migrate_Screen {
             <table class="widefat striped">
                 <thead>
                     <tr>
-                        <th style="width:26%"><?php esc_html_e( 'Event', 'comms-church-recurring-events' ); ?></th>
-                        <th style="width:20%"><?php esc_html_e( 'Pro rule', 'comms-church-recurring-events' ); ?></th>
-                        <th style="width:14%"><?php esc_html_e( 'Status', 'comms-church-recurring-events' ); ?></th>
+                        <th class="ccrec-col-event"><?php esc_html_e( 'Event', 'comms-church-recurring-events' ); ?></th>
+                        <th class="ccrec-col-rule"><?php esc_html_e( 'Pro rule', 'comms-church-recurring-events' ); ?></th>
+                        <th class="ccrec-col-status"><?php esc_html_e( 'Status', 'comms-church-recurring-events' ); ?></th>
                         <th><?php esc_html_e( 'What will happen', 'comms-church-recurring-events' ); ?></th>
-                        <th style="width:130px"></th>
+                        <th class="ccrec-col-action"><span class="screen-reader-text"><?php esc_html_e( 'Action', 'comms-church-recurring-events' ); ?></span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -144,14 +144,18 @@ class CCREC_Migrate_Screen {
                             <strong><a href="<?php echo esc_url( get_edit_post_link( $row['id'] ) ); ?>"><?php echo esc_html( $row['title'] ?: '(untitled)' ); ?></a></strong><br>
                             <small><?php echo esc_html( $row['start'] ); ?></small>
                         </td>
-                        <td><code style="font-size:11px"><?php echo esc_html( $row['ecp'] ); ?></code></td>
+                        <td><code class="ccrec-code"><?php echo esc_html( $row['ecp'] ); ?></code></td>
                         <td>
                             <?php
-                            $colors = array( 'ready' => '#00733f', 'unsupported' => '#b32d2e', 'already migrated' => '#646970' );
+                            $labels = array(
+                                'ready'            => __( 'Ready', 'comms-church-recurring-events' ),
+                                'unsupported'      => __( 'Needs attention', 'comms-church-recurring-events' ),
+                                'already migrated' => __( 'Migrated', 'comms-church-recurring-events' ),
+                            );
                             printf(
-                                '<span style="color:%s;font-weight:600">%s</span>',
-                                esc_attr( $colors[ $row['status'] ] ?? '#646970' ),
-                                esc_html( $row['status'] )
+                                '<span class="ccrec-status ccrec-status--%s">%s</span>',
+                                esc_attr( str_replace( ' ', '-', $row['status'] ) ),
+                                esc_html( $labels[ $row['status'] ] ?? ucfirst( $row['status'] ) )
                             );
                             ?>
                         </td>
@@ -161,16 +165,16 @@ class CCREC_Migrate_Screen {
                                     esc_html( _n( '%d date will be created:', '%d dates will be created:', count( $row['dates'] ), 'comms-church-recurring-events' ) ),
                                     count( $row['dates'] )
                                 ); ?>
-                                <details style="margin-top:4px">
-                                    <summary style="cursor:pointer"><?php esc_html_e( 'show dates', 'comms-church-recurring-events' ); ?></summary>
-                                    <ul style="margin:6px 0 0 16px;list-style:disc;font-size:12px">
+                                <details class="ccrec-dates">
+                                    <summary><?php esc_html_e( 'show dates', 'comms-church-recurring-events' ); ?></summary>
+                                    <ul class="ccrec-bullets ccrec-small">
                                         <?php foreach ( $row['dates'] as $d ) : ?>
                                             <li><?php echo esc_html( date_i18n( 'D, M j Y — g:ia', strtotime( $d ) ) ); ?></li>
                                         <?php endforeach; ?>
                                     </ul>
                                 </details>
                                 <?php if ( $row['note'] ) : ?>
-                                    <p class="description" style="margin-top:4px"><?php echo esc_html( $row['note'] ); ?></p>
+                                    <p class="description ccrec-note"><?php echo esc_html( $row['note'] ); ?></p>
                                 <?php endif; ?>
                             <?php else : ?>
                                 <span class="description"><?php echo esc_html( $row['note'] ?: __( 'Already converted.', 'comms-church-recurring-events' ) ); ?></span>
@@ -189,7 +193,7 @@ class CCREC_Migrate_Screen {
             </table>
 
             <?php if ( $ready ) : ?>
-                <h2 style="margin-top:28px"><?php esc_html_e( 'Migrate everything that is ready', 'comms-church-recurring-events' ); ?></h2>
+                <h2 class="ccrec-section"><?php esc_html_e( 'Migrate everything that is ready', 'comms-church-recurring-events' ); ?></h2>
                 <p class="description">
                     <?php printf(
                         esc_html__( 'Events that need attention are skipped and left exactly as they are. Recommended: migrate one event first and check your calendar.', 'comms-church-recurring-events' )
@@ -219,7 +223,10 @@ class CCREC_Migrate_Screen {
     /** Single-action form; each row posts on its own so one click does one thing. */
     private function button( $action, $id, $label, $class ) {
         ?>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ccrec-inline-form"
+            <?php if ( 'rollback' === $action ) : ?>
+              onsubmit="return confirm('<?php echo esc_js( __( 'Roll back this event? The dates the migration generated will be deleted.', 'comms-church-recurring-events' ) ); ?>');"
+            <?php endif; ?>>
             <?php wp_nonce_field( 'ccrec_migrate' ); ?>
             <input type="hidden" name="action" value="ccrec_migrate">
             <input type="hidden" name="ccrec_action" value="<?php echo esc_attr( $action ); ?>">
