@@ -191,9 +191,6 @@ class CCREC_Metabox {
             </p>
 
             <?php if ( $children ) : ?>
-                <p class="ccrec-change-warning notice notice-warning inline" hidden>
-                    <?php esc_html_e( 'Future dates that no longer fit the new pattern will move to the Trash when you update, including any you edited individually.', 'comms-church-recurring-events' ); ?>
-                </p>
                 <p class="description ccrec-generated">
                     <?php printf(
                         esc_html( _n( '%d date generated.', '%d dates generated.', $children, 'comms-church-recurring-events' ) ),
@@ -203,6 +200,13 @@ class CCREC_Metabox {
                 </p>
             <?php endif; ?>
         </div>
+
+        <?php /* Outside .ccrec-when: "Does not repeat" hides that, and removes the most. */ ?>
+        <?php if ( $children ) : ?>
+            <p class="ccrec-change-warning notice notice-warning inline" hidden>
+                <?php esc_html_e( 'Future dates that no longer fit the new pattern will move to the Trash when you update, including any you edited individually.', 'comms-church-recurring-events' ); ?>
+            </p>
+        <?php endif; ?>
 
         <script>
         ( function () {
