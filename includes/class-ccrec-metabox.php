@@ -277,7 +277,7 @@ class CCREC_Metabox {
                 clearTimeout( nextTimer );
                 nextTimer = setTimeout( function () {
                     if ( ! next || ! nonceEl || ! postIdEl || ! window.ajaxurl ) return;
-                    if ( freq.value === 'none' ) { next.hidden = true; return; }
+                    if ( freq.value === 'none' ) { ++nextSeq; next.hidden = true; return; }   // drop any in-flight preview
                     var fd = new FormData(), seq = ++nextSeq;
                     fd.append( 'action', 'ccrec_preview' );
                     fd.append( 'nonce', nonceEl.value );
