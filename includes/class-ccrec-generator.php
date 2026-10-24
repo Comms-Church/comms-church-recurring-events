@@ -59,7 +59,9 @@ class CCREC_Generator {
     public function on_save( $post_id, $post, $update ) {
         if ( self::$working ) return;
         if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) return;
-        if ( 'auto-draft' === $post->post_status ) return;
+        // Trashing a parent re-saves it after on_trash() has trashed its dates; syncing
+        // then would find none and generate a fresh set straight into the Trash.
+        if ( in_array( $post->post_status, array( 'auto-draft', 'trash' ), true ) ) return;
 
         // Children never spawn children.
         if ( get_post_meta( $post_id, self::PARENT_META, true ) ) return;
