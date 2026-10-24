@@ -3,7 +3,7 @@
  * Plugin Name:       Comms.Church — Recurring Events for The Events Calendar
  * Plugin URI:        https://github.com/Comms-Church/comms-church-recurring-events
  * Description:       Repeating events for the free version of The Events Calendar. Set a repeat pattern on any event and this generates the individual dates as real events — no Events Calendar Pro licence required.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Author:            Comms.Church
  * Author URI:        https://comms.church
  * License:           GPL-2.0+
@@ -23,7 +23,7 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
     return;
 }
 
-define( 'CCREC_VERSION', '0.1.0' );
+define( 'CCREC_VERSION', '0.2.0' );
 define( 'CCREC_FILE', __FILE__ );
 define( 'CCREC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CCREC_URL', plugin_dir_url( __FILE__ ) );

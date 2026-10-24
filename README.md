@@ -6,9 +6,11 @@ licence required.
 
 ## Status
 
-**0.1.0 — released.** Recurrence engine, generation, edit-screen controls, and the
-migration path off Pro all work and are tested end to end (8/8 Playwright smoke against
-free TEC with no Pro installed).
+**0.2.0 — released.** Recurrence engine, generation, edit-screen controls, and the
+migration path off Pro all work and are tested end to end with Playwright against free TEC
+with no Pro installed. 0.2.0 adds a live preview of the next dates, sends dates a changed
+rule drops to the Trash instead of deleting them, and supports sites on a UTC-offset
+timezone.
 
 ## Why this exists
 
