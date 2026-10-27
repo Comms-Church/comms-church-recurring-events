@@ -4,6 +4,10 @@ Repeating events for the **free** version of The Events Calendar. Set a repeat p
 any event and this generates the individual dates as real events — no Events Calendar Pro
 licence required.
 
+## Pay what's fair
+
+This plugin is free so churches can spend less on their websites. If you use it in paid work — building or managing church websites for a fee — we ask that you [pay what you think is fair](https://buy.stripe.com/00w5kD8BF21R6SigP62B201). There are no license keys and no checks; it's the honor system. It keeps the plugins maintained and free for everyone else.
+
 ## Status
 
 **0.2.0 — released.** Recurrence engine, generation, edit-screen controls, and the
